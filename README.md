@@ -148,7 +148,8 @@ NetRing/
 │   ├── _Template/            # Starting point for a new module (ignored)
 │   ├── AdapterControl/
 │   ├── LanInfo/
-│   └── VisualTrace/
+│   ├── VisualTrace/
+│   └── WebExplain/
 │       ├── module.psd1       # Metadata: name, version, menu entries, aliases
 │       └── module.psm1       # Tool logic
 └── README.md
@@ -158,6 +159,7 @@ NetRing/
 
 | Module | Category | Alias | Description |
 |--------|----------|-------|-------------|
+| WebExplain | Web | `explain <Url> [Follow] [Timeout] [DnsServer]` | Shows step by step what happens when you open a website: DNS lookup (hosts file, local DNS cache or which DNS server answered, authoritative or not, with CNAMEs and TTL; `-DnsServer` asks a chosen server directly), the TCP three-way handshake, TLS with protocol, cipher and certificate chain, the HTTP request and the response headers with a short explanation. Ends with a timeline per phase and follows redirects. |
 | VisualTrace | Connectivity | `trace <Target> [MaxHops] [Timeout] [Probes] [Resolve]` | Traceroute that draws the path hop by hop with latency bars, network zones (LAN, CGNAT, PUBLIC), latency jumps and a compact path map. |
 | AdapterControl | This machine | `nic [Adapter] [Action]` | Choose an adapter and get the actions that fit it: renew or release the DHCP lease, restart, disable or enable the adapter, flush the DNS cache. Without parameters it shows a list of adapters and an action menu; `nic wifi renew` works directly. Windows only, most actions need administrator rights. Asks for confirmation before cutting the adapter of the default route. |
 | LanInfo | This machine | `lan [Filter] [View] [All]` | Network configuration per adapter: IP, subnet mask, network range, gateway, DHCP (and DHCP server), DNS, IPv6, MAC and MTU. Marks the adapter of the default route and warns for APIPA addresses. `-View table` gives one line per adapter. |
@@ -198,4 +200,5 @@ Guidelines for every module:
 - [x] VisualTrace module (`trace`)
 - [x] LanInfo module (`lan`)
 - [x] AdapterControl module (`nic`)
+- [x] WebExplain module (`explain`)
 - [ ] Next modules: to be decided
