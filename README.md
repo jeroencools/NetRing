@@ -149,6 +149,7 @@ NetRing/
 │   ├── AdapterControl/
 │   ├── LanInfo/
 │   ├── NetScan/
+│   ├── PortScan/
 │   ├── VisualTrace/
 │   └── WebExplain/
 │       ├── module.psd1       # Metadata: name, version, menu entries, aliases
@@ -161,6 +162,7 @@ NetRing/
 | Module | Category | Alias | Description |
 |--------|----------|-------|-------------|
 | NetScan | Discovery | `scan [Subnet] [Timeout] [Resolve] [Ask]` | Who is on my network? Scans a subnet (`192.168.1.0/24`), a range (`192.168.1.100-200`) or one address. Pings every address in parallel and combines it with the ARP table (devices that block ping still show up), vendor from the MAC address, hostname and a rough guess of the device type based on gateway, name, vendor and TTL. No port scan. Asks for confirmation and warns to only scan networks you may scan. Put the IEEE `oui.txt` in `Modules/NetScan` for a complete vendor list. |
+| PortScan | Services | `ports <Target> [Ports] [Timeout] [Banner] [Show] [Ask] [Export]` | TCP connect scan of one host, a range or a subnet. Ports as a single port, list, range or preset (`top`, `web`, `windows`, `mail`, `remote`, `all`). Shows open, closed (refused) and filtered (no answer, firewall), with service explanation, risk notes and optional banners. One host: a table; several hosts: a grid (up to 8 ports) or a list of open ports. Exports the open ports to CSV (all ports with `-Show all`) with the list separator of the computer (`;` on a Belgian Windows). |
 | WebExplain | Web | `explain <Url> [Follow] [Timeout] [DnsServer]` | Shows step by step what happens when you open a website: DNS lookup (hosts file, local DNS cache or which DNS server answered, authoritative or not, with CNAMEs and TTL; `-DnsServer` asks a chosen server directly), the TCP three-way handshake, TLS with protocol, cipher and certificate chain, the HTTP request and the response headers with a short explanation. Ends with a timeline per phase and follows redirects. |
 | VisualTrace | Connectivity | `trace <Target> [MaxHops] [Timeout] [Probes] [Resolve]` | Traceroute that draws the path hop by hop with latency bars, network zones (LAN, CGNAT, PUBLIC), latency jumps and a compact path map. |
 | AdapterControl | This machine | `nic [Adapter] [Action]` | Choose an adapter and get the actions that fit it: renew or release the DHCP lease, restart, disable or enable the adapter, flush the DNS cache. Without parameters it shows a list of adapters and an action menu; `nic wifi renew` works directly. Windows only, most actions need administrator rights. Asks for confirmation before cutting the adapter of the default route. |
@@ -204,4 +206,5 @@ Guidelines for every module:
 - [x] AdapterControl module (`nic`)
 - [x] WebExplain module (`explain`)
 - [x] NetScan module (`scan`)
+- [x] PortScan module (`ports`)
 - [ ] Next modules: to be decided
