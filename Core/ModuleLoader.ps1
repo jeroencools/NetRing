@@ -207,6 +207,9 @@ function Import-NRModuleFolder {
             if ($t.ContainsKey('Examples') -and $t.Examples) { $examples = @($t.Examples) }
             $description = ''
             if ($t.ContainsKey('Description')) { $description = [string]$t.Description }
+            # Interactive tools ask for their own input in menu mode.
+            $interactive = $false
+            if ($t.ContainsKey('Interactive')) { $interactive = [bool]$t.Interactive }
 
             $tool = [pscustomobject]@{
                 Name        = [string]$t.Name
@@ -215,6 +218,7 @@ function Import-NRModuleFolder {
                 Parameters  = $params
                 Examples    = $examples
                 Command     = $psModule.ExportedCommands[[string]$t.Command]
+                Interactive = $interactive
                 Module        = $record.Name
                 Category      = $category.Name
                 CategoryKey   = $category.Key

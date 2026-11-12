@@ -146,6 +146,7 @@ NetRing/
 │   └── Menu.ps1              # Menu engine, built in commands, shell loop
 ├── Modules/                  # One folder per module
 │   ├── _Template/            # Starting point for a new module (ignored)
+│   ├── AdapterControl/
 │   ├── LanInfo/
 │   └── VisualTrace/
 │       ├── module.psd1       # Metadata: name, version, menu entries, aliases
@@ -158,6 +159,7 @@ NetRing/
 | Module | Category | Alias | Description |
 |--------|----------|-------|-------------|
 | VisualTrace | Connectivity | `trace <Target> [MaxHops] [Timeout] [Probes] [Resolve]` | Traceroute that draws the path hop by hop with latency bars, network zones (LAN, CGNAT, PUBLIC), latency jumps and a compact path map. |
+| AdapterControl | This machine | `nic [Adapter] [Action]` | Choose an adapter and get the actions that fit it: renew or release the DHCP lease, restart, disable or enable the adapter, flush the DNS cache. Without parameters it shows a list of adapters and an action menu; `nic wifi renew` works directly. Windows only, most actions need administrator rights. Asks for confirmation before cutting the adapter of the default route. |
 | LanInfo | This machine | `lan [Filter] [View] [All]` | Network configuration per adapter: IP, subnet mask, network range, gateway, DHCP (and DHCP server), DNS, IPv6, MAC and MTU. Marks the adapter of the default route and warns for APIPA addresses. `-View table` gives one line per adapter. |
 
 ## Writing a module
@@ -174,6 +176,8 @@ The quickest start is to copy `Modules/_Template` to `Modules/<ModuleName>` and 
 | `Category` | yes | Key of a category in `Core/Categories.psd1`: `local`, `discovery`, `connectivity`, `dns`, `services`, `web`, `calculators` or `security`. Several modules can share a category. |
 | `Tools` | yes | List of tools. Each tool has `Name`, `Alias`, `Command` and optionally `Description`, `Parameters` and `Examples`. |
 | `MinPSVersion` | no | Minimum PowerShell version, for example `'5.1'`. |
+
+Per tool you can also set `Interactive = $true`. In menu mode the core then does not ask for the parameters, because the tool asks for its own input (like `nic`).
 
 Every entry in `Parameters` has a `Name` that matches a parameter of the PowerShell function, plus `Required`, `Default` (shown in menus and help) and `Description`. The order of the list is the positional order in alias mode.
 
@@ -193,4 +197,5 @@ Guidelines for every module:
 - [x] Core: menus, aliases, module loader with error isolation
 - [x] VisualTrace module (`trace`)
 - [x] LanInfo module (`lan`)
+- [x] AdapterControl module (`nic`)
 - [ ] Next modules: to be decided

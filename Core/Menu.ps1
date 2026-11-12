@@ -196,7 +196,11 @@ function Select-NRMenuNumber {
     if ($tool.Description) { Write-Host ("  {0}" -f $tool.Description) -ForegroundColor $script:NRTheme.Dim }
     Write-Host ("  Tip: next time type '{0}'" -f (Get-NRUsage -Tool $tool)) -ForegroundColor $script:NRTheme.Dim
     Write-Host ''
-    $arguments = ConvertTo-NRArguments -Tool $tool -Tokens @() -PromptAll
+    if ($tool.Interactive) {
+        $arguments = @{}   # the tool asks for its own input
+    } else {
+        $arguments = ConvertTo-NRArguments -Tool $tool -Tokens @() -PromptAll
+    }
     if ($null -ne $arguments) { Invoke-NRTool -Context $Context -Tool $tool -Arguments $arguments }
     Write-Host '  (Enter = show menu)' -ForegroundColor $script:NRTheme.Dim
     return $true
