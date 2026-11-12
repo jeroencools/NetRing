@@ -5,21 +5,26 @@ function Show-NRMenu {
 
     if (-not $Context.Location) {
         Write-NRTitle 'Main menu'
-        if ($Context.Categories.Count -eq 0) {
+        if (@($Context.Modules | Where-Object { $_.Status -eq 'Loaded' }).Count -eq 0) {
             Write-NRWarn "No modules loaded. Type 'modules' to see why."
         }
         $i = 0
         foreach ($category in $Context.Categories) {
             $i++
-            $count = @(Get-NRCategoryTools -Context $Context -Category $category).Count
-            Write-NRMenuItem -Key $i -Label $category -Hint ("{0} tool(s)" -f $count)
+            $count = @(Get-NRCategoryTools -Context $Context -Category $category.Key).Count
+            Write-NRCategoryItem -Number $i -Category $category -Count $count
         }
         Write-Host ''
         Write-NRMenuItem -Key '0' -Label 'Exit'
     } else {
-        Write-NRTitle $Context.Location
+        $category = Get-NRCategory -Context $Context -Key $Context.Location
+        Write-NRTitle $category.Name
+        $tools = @(Get-NRCategoryTools -Context $Context -Category $Context.Location)
+        if ($tools.Count -eq 0) {
+            Write-Host '     No tools in this category yet.' -ForegroundColor $script:NRTheme.Dim
+        }
         $i = 0
-        foreach ($tool in @(Get-NRCategoryTools -Context $Context -Category $Context.Location)) {
+        foreach ($tool in $tools) {
             $i++
             Write-NRMenuItem -Key $i -Label $tool.Name -Hint ("alias: {0}" -f $tool.Alias)
         }
@@ -27,6 +32,32 @@ function Show-NRMenu {
         Write-NRMenuItem -Key '0' -Label 'Back'
     }
     Write-Host ''
+}
+
+function Write-NRCategoryItem {
+    # One line in the main menu:  1) This machine   1 tool
+    # Empty categories are shown in gray, so the numbers never change.
+    param(
+        [Parameter(Mandatory)][int]$Number,
+        [Parameter(Mandatory)]$Category,
+        [Parameter(Mandatory)][int]$Count
+    )
+
+    $countText = "$Count tools"
+    if ($Count -eq 1) { $countText = '1 tool' }
+
+    $keyColor = $script:NRTheme.Key
+    $nameColor = $script:NRTheme.Text
+    $countColor = $script:NRTheme.Muted
+    if ($Count -eq 0) {
+        $keyColor = $script:NRTheme.Dim
+        $nameColor = $script:NRTheme.Dim
+        $countColor = $script:NRTheme.Dim
+    }
+
+    Write-Host ("   {0,3}) " -f $Number) -ForegroundColor $keyColor -NoNewline
+    Write-Host ("{0,-16}" -f $Category.Name) -ForegroundColor $nameColor -NoNewline
+    Write-Host $countText -ForegroundColor $countColor
 }
 
 function Show-NRHelp {
@@ -101,7 +132,7 @@ function Show-NRAliases {
         Write-NRWarn 'No aliases available.'
         return
     }
-    foreach ($tool in ($Context.Aliases.Values | Sort-Object Category, Alias)) {
+    foreach ($tool in ($Context.Aliases.Values | Sort-Object CategoryOrder, Alias)) {
         Write-Host ("   {0,-12}" -f $tool.Alias) -ForegroundColor $script:NRTheme.Key -NoNewline
         Write-Host ("{0,-28}" -f $tool.Name) -ForegroundColor $script:NRTheme.Text -NoNewline
         Write-Host (Get-NRUsage -Tool $tool) -ForegroundColor $script:NRTheme.Dim
@@ -150,7 +181,7 @@ function Select-NRMenuNumber {
             Write-NRError "No menu item $Number."
             return $true
         }
-        $Context.Location = $Context.Categories[$Number - 1]
+        $Context.Location = $Context.Categories[$Number - 1].Key
         if ($ShowMenu) { Show-NRMenu -Context $Context }
         return $true
     }
@@ -202,7 +233,7 @@ function Invoke-NRCommand {
         'cls'     { Clear-Host; return $true }
         'reload'  {
             Import-NRModules -Context $Context
-            if ($Context.Location -and ($Context.Categories -notcontains $Context.Location)) { $Context.Location = '' }
+            if ($Context.Location -and -not (Get-NRCategory -Context $Context -Key $Context.Location)) { $Context.Location = '' }
             Write-NRInfo ("Modules reloaded: {0} loaded." -f @($Context.Modules | Where-Object { $_.Status -eq 'Loaded' }).Count)
             return $true
         }
@@ -236,7 +267,7 @@ function Invoke-NRCommand {
 
 function Get-NRPrompt {
     param([Parameter(Mandatory)][hashtable]$Context)
-    if ($Context.Location) { return ("netring/{0}> " -f $Context.Location.ToLowerInvariant()) }
+    if ($Context.Location) { return ("netring/{0}> " -f $Context.Location) }
     return 'netring> '
 }
 

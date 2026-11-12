@@ -3,7 +3,7 @@
     Version      = '0.1.0'
     Author       = 'NetRing'
     Description  = 'Traceroute with a visual path, latency bars and network zones.'
-    Category     = 'Diagnostics'
+    Category     = 'connectivity'   # key from Core/Categories.psd1
     MinPSVersion = '5.1'
 
     Tools = @(

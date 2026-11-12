@@ -78,7 +78,22 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 
 ### Menu mode
 
-After starting NetRing you see the main menu. Type a number and press Enter to go one level deeper. Use `0` (or `back`) to return to the previous menu. Several numbers on one line form a path from the main menu, so `1 1` opens the first tool of the first category.
+The main menu always shows the same categories in the same order, so the numbers never change when modules are added. Empty categories are shown in gray with `0 tools`.
+
+| Nr | Category | Question it answers |
+|----|----------|---------------------|
+| 1 | This machine | How is my own computer configured? |
+| 2 | Discovery | Who is on my network? |
+| 3 | Connectivity | Can I reach a host, and along which path? |
+| 4 | DNS | Does name resolution work? |
+| 5 | Services | Which services run on a host? |
+| 6 | Web | Is that website or certificate in order? |
+| 7 | Calculators | Network math, no network needed |
+| 8 | Security | Are there weak spots? |
+
+The categories are defined in `Core/Categories.psd1`. Modules with an unknown category end up in an extra category `Other`.
+
+After starting NetRing you see the main menu. Type a number and press Enter to go one level deeper. Use `0` (or `back`) to return to the previous menu. Several numbers on one line form a path from the main menu, so `3 1` always opens the first tool of Connectivity.
 
 
 ### Alias mode
@@ -124,12 +139,14 @@ Built in commands:
 NetRing/
 ├── NetRing.ps1               # Entry point
 ├── Core/                     # The core, never contains tool logic
+│   ├── Categories.psd1       # Menu categories: order and names        
 │   ├── Console.ps1           # Banner, colors, output helpers
 │   ├── ModuleLoader.ps1      # Discovers, validates and loads modules
 │   ├── AliasParser.ps1       # Tokenizer, argument binding, error boundary
 │   └── Menu.ps1              # Menu engine, built in commands, shell loop
 ├── Modules/                  # One folder per module
 │   ├── _Template/            # Starting point for a new module (ignored)
+│   ├── LanInfo/
 │   └── VisualTrace/
 │       ├── module.psd1       # Metadata: name, version, menu entries, aliases
 │       └── module.psm1       # Tool logic
@@ -140,7 +157,8 @@ NetRing/
 
 | Module | Category | Alias | Description |
 |--------|----------|-------|-------------|
-| VisualTrace | Diagnostics | `trace <Target> [MaxHops] [Timeout] [Probes] [Resolve]` | Traceroute that draws the path hop by hop with latency bars, network zones (LAN, CGNAT, PUBLIC), latency jumps and a compact path map. |
+| VisualTrace | Connectivity | `trace <Target> [MaxHops] [Timeout] [Probes] [Resolve]` | Traceroute that draws the path hop by hop with latency bars, network zones (LAN, CGNAT, PUBLIC), latency jumps and a compact path map. |
+| LanInfo | This machine | `lan [Filter] [View] [All]` | Network configuration per adapter: IP, subnet mask, network range, gateway, DHCP (and DHCP server), DNS, IPv6, MAC and MTU. Marks the adapter of the default route and warns for APIPA addresses. `-View table` gives one line per adapter. |
 
 ## Writing a module
 
@@ -153,7 +171,7 @@ The quickest start is to copy `Modules/_Template` to `Modules/<ModuleName>` and 
 | Key | Required | Meaning |
 |-----|----------|---------|
 | `Name`, `Version` | yes | Module name and version. |
-| `Category` | yes | Menu category. Several modules can share a category. |
+| `Category` | yes | Key of a category in `Core/Categories.psd1`: `local`, `discovery`, `connectivity`, `dns`, `services`, `web`, `calculators` or `security`. Several modules can share a category. |
 | `Tools` | yes | List of tools. Each tool has `Name`, `Alias`, `Command` and optionally `Description`, `Parameters` and `Examples`. |
 | `MinPSVersion` | no | Minimum PowerShell version, for example `'5.1'`. |
 
@@ -174,4 +192,5 @@ Guidelines for every module:
 
 - [x] Core: menus, aliases, module loader with error isolation
 - [x] VisualTrace module (`trace`)
+- [x] LanInfo module (`lan`)
 - [ ] Next modules: to be decided

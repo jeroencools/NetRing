@@ -8,7 +8,9 @@
     Version      = '0.1.0'
     Author       = ''
     Description  = 'Short description of the module.'
-    Category     = 'Examples'        # menu category, modules can share one
+    # Menu category: a Key from Core/Categories.psd1
+    # local, discovery, connectivity, dns, services, web, calculators, security
+    Category     = 'calculators'
     MinPSVersion = '5.1'
 
     Tools = @(

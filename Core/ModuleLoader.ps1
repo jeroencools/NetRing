@@ -21,9 +21,75 @@ function New-NRContext {
         Modules    = @()
         # Case insensitive lookup: alias -> tool record
         Aliases    = New-Object 'System.Collections.Hashtable' ([System.StringComparer]::OrdinalIgnoreCase)
-        Categories = @()
-        Location   = ''   # '' = main menu, otherwise the category name
+        CategoryDefs = @()   # from Core/Categories.psd1
+        Categories = @()     # categories shown in the main menu
+        Location   = ''      # '' = main menu, otherwise the category key
     }
+}
+
+function Import-NRCategories {
+    # Reads Core/Categories.psd1. Without it NetRing still works, every
+    # module then ends up in 'Other'.
+    param([Parameter(Mandatory)][hashtable]$Context)
+
+    $defs = New-Object System.Collections.Generic.List[object]
+    $path = Join-Path (Join-Path $Context.Root 'Core') 'Categories.psd1'
+    try {
+        $data = Import-PowerShellDataFile -LiteralPath $path -ErrorAction Stop
+        $order = 0
+        foreach ($c in @($data.Categories)) {
+            if ($c -isnot [hashtable] -or -not $c.Key -or -not $c.Name) {
+                Write-NRWarn "Categories.psd1: an entry without Key or Name is skipped."
+                continue
+            }
+            $order++
+            $description = ''
+            if ($c.ContainsKey('Description')) { $description = [string]$c.Description }
+            $defs.Add([pscustomobject]@{
+                Key         = ([string]$c.Key).ToLowerInvariant()
+                Name        = [string]$c.Name
+                Description = $description
+                Order       = $order
+            })
+        }
+    } catch {
+        Write-NRWarn ("Core/Categories.psd1 could not be loaded: {0}" -f $_.Exception.Message)
+    }
+    $Context.CategoryDefs = $defs.ToArray()
+}
+
+function Get-NROtherCategory {
+    return [pscustomobject]@{
+        Key         = 'other'
+        Name        = 'Other'
+        Description = 'Tools without a known category'
+        Order       = 999
+    }
+}
+
+function Resolve-NRCategory {
+    # Finds a category by key or by name (not case sensitive).
+    param(
+        [Parameter(Mandatory)][hashtable]$Context,
+        [string]$Value
+    )
+    foreach ($def in $Context.CategoryDefs) {
+        if ($def.Key -eq $Value -or $def.Name -eq $Value) { return $def }
+    }
+    if ($Value -eq 'other') { return (Get-NROtherCategory) }
+    return $null
+}
+
+function Get-NRCategory {
+    # Returns the menu category with this key, or $null.
+    param(
+        [Parameter(Mandatory)][hashtable]$Context,
+        [string]$Key
+    )
+    foreach ($c in $Context.Categories) {
+        if ($c.Key -eq $Key) { return $c }
+    }
+    return $null
 }
 
 function Test-NRManifest {
@@ -75,6 +141,7 @@ function Import-NRModuleFolder {
         Name     = $Folder.Name
         Version  = '?'
         Category = ''
+        CategoryKey = ''
         Path     = $Folder.FullName
         Status   = 'Failed'
         Error    = ''
@@ -94,7 +161,13 @@ function Import-NRModuleFolder {
 
         $record.Name     = [string]$manifest.Name
         $record.Version  = [string]$manifest.Version
-        $record.Category = [string]$manifest.Category
+        $category = Resolve-NRCategory -Context $Context -Value ([string]$manifest.Category)
+        if (-not $category) {
+            $record.Warnings.Add("unknown category '$($manifest.Category)', module placed in 'Other' (see Core/Categories.psd1)")
+            $category = Get-NROtherCategory
+        }
+        $record.Category    = $category.Name
+        $record.CategoryKey = $category.Key
 
         if ($manifest.ContainsKey('MinPSVersion') -and $manifest.MinPSVersion) {
             if ($PSVersionTable.PSVersion -lt [version]$manifest.MinPSVersion) {
@@ -142,8 +215,10 @@ function Import-NRModuleFolder {
                 Parameters  = $params
                 Examples    = $examples
                 Command     = $psModule.ExportedCommands[[string]$t.Command]
-                Module      = $record.Name
-                Category    = $record.Category
+                Module        = $record.Name
+                Category      = $category.Name
+                CategoryKey   = $category.Key
+                CategoryOrder = $category.Order
             }
             $tools.Add($tool)
             $Context.Aliases[$alias] = $tool
@@ -166,10 +241,11 @@ function Import-NRModules {
 
     $Context.Modules = @()
     $Context.Aliases.Clear()
+    Import-NRCategories -Context $Context
 
     if (-not (Test-Path -LiteralPath $Context.ModulePath)) {
         Write-NRWarn "Modules folder not found: $($Context.ModulePath)"
-        $Context.Categories = @()
+        $Context.Categories = @($Context.CategoryDefs)
         return
     }
 
@@ -183,12 +259,15 @@ function Import-NRModules {
     }
     $Context.Modules = $records.ToArray()
 
-    $Context.Categories = @(
-        $Context.Modules |
-            Where-Object { $_.Status -eq 'Loaded' } |
-            ForEach-Object { $_.Category } |
-            Sort-Object -Unique
-    )
+    # All categories from Categories.psd1, also the empty ones, so the menu
+    # numbers never change. 'Other' only appears when a module needs it.
+    $categories = New-Object System.Collections.Generic.List[object]
+    foreach ($def in $Context.CategoryDefs) { $categories.Add($def) }
+    $needsOther = @($Context.Modules | Where-Object { $_.Status -eq 'Loaded' -and $_.CategoryKey -eq 'other' }).Count -gt 0
+    if ($needsOther -and -not (@($Context.CategoryDefs | Where-Object { $_.Key -eq 'other' }).Count -gt 0)) {
+        $categories.Add((Get-NROtherCategory))
+    }
+    $Context.Categories = $categories.ToArray()
 }
 
 function Get-NRCategoryTools {
@@ -198,7 +277,7 @@ function Get-NRCategoryTools {
     )
     return @(
         $Context.Modules |
-            Where-Object { $_.Status -eq 'Loaded' -and $_.Category -eq $Category } |
+            Where-Object { $_.Status -eq 'Loaded' -and $_.CategoryKey -eq $Category } |
             ForEach-Object { $_.Tools } |
             Sort-Object Name
     )
